@@ -1,0 +1,12 @@
+c=[255/255 139/255 29/255];
+c1=[0 0 0];
+cmds={};
+cmds=[cmds struct('type','sphere','color',[c .1])];
+cmds=[cmds struct('type','equator','color',[c1 .2],'color2',c)];
+cmds=[cmds struct('type','spline','color',[c1 .2],'color2',c)];
+cmds=[cmds struct('type','label','val',[1.1 0 0],'label','|0+1>')];
+cmds=[cmds struct('type','label','val',[-1.1 0 0],'label','|0-1>')];
+cmds=[cmds struct('type','label','val',[0 0 1.1],'label','|0>')];
+cmds=[cmds struct('type','label','val',[0 0 -1.1],'label','|1>')];
+cmds=[cmds struct('type','vector','val',[sqrt(1/3),sqrt(1/3),sqrt(1/3)],'size',1,'color',[0 0 1])];
+h=plotBloch(cmds);
