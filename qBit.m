@@ -1,18 +1,34 @@
 classdef qBit < handle
+% qBit class represents a qubit which could be stored in global qstate
+%     qBit Properties
+%         rho - Density matrix
+%         dephase - not implemented
+%         depolar - not implemented
+%         parent - global parent quantum state, not implemented
+%         epsilon - rounding error
+%         bvec - Bloch vector of the qbit for pure states
+%         purity - the purity of qubit
+%     qBit Methods
+%         qBit - constructor
+%         isPure - returns boolean for the purity of qubit
+%         evolve - evolves qBit according to the input Hamiltonian
+%         plot - plots Bloch vector of the qBit for pure states
+
     properties
         rho;
-        dephase;
-        depolar;
+        dephase; %Not implemented
+        depolar; %Not implemented
         parent;
     end
-    properties (SetAccess = immutable) %Rounding error does not need change
+    properties (SetAccess = immutable) %Rounding error
        epsilon = 1e-12; 
     end
     properties (Dependent = true, SetAccess = private)
         bvec;
         purity;
     end
-    properties (Constant, Hidden=true)
+    properties (Constant, Hidden)
+        si = eye(2);
         sx = [0 1;1 0];
         sy = [0 -1i; 1i 0];
         sz = [1 0;0 -1];
@@ -46,8 +62,8 @@ classdef qBit < handle
         function purity = get.purity(qb)
             purity = sqrt(trace(qb.rho^2));
         end
-        function qb = evolve(qb)
-            
+        function evolve(qb,H,t)
+            qb.rho = qb.stevolve(qb.rho,H,t);
         end
         function h = plot(qb)
             if (isPure(qb)<qb.epsilon)
@@ -73,7 +89,7 @@ classdef qBit < handle
               x = v(1)*qb.sx;
               y = v(2)*qb.sy;
               z = v(3)*qb.sz;  
-              rho = (eye(2)+x+y+z)/2;
+              rho = (qb.si+x+y+z)/2;
         end
         function y = stevolve(psii,H,t)
             psit = psii;

@@ -3,6 +3,7 @@ function pl = plotBloch(cmds)
     hold on;
     axis equal;
     axis tight;
+    view([.5 -1 .2]);
     for l=1:length(cmds)
         switch cmds{l}.type
             case 'spline'
