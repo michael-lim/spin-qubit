@@ -13,6 +13,7 @@ classdef qBit < handle
 %         isPure - returns boolean for the purity of qubit
 %         evolve - evolves qBit according to the input Hamiltonian
 %         plot - plots Bloch vector of the qBit for pure states
+%         plotev - plots the evolution of the Bloch vector
 
     properties
         rho;
@@ -57,7 +58,7 @@ classdef qBit < handle
             bool = abs(qb.purity-1)<qb.epsilon;
         end
         function bvec = get.bvec(qb)
-            bvec = [trace(qb.rho*qb.sx), trace(qb.rho*qb.sy), trace(qb.rho*qb.sz)];
+            bvec = real([trace(qb.rho*qb.sx), trace(qb.rho*qb.sy), trace(qb.rho*qb.sz)]);
         end
         function purity = get.purity(qb)
             purity = sqrt(trace(qb.rho^2));
@@ -66,8 +67,9 @@ classdef qBit < handle
             qb.rho = qb.stevolve(qb.rho,H,t);
         end
         function h = plot(qb)
+            clf;
             if (isPure(qb)<qb.epsilon)
-                warning('State is not pure');
+                warning('State is not pure and will not plot Bloch vector');
             end
             c=[255/255 139/255 29/255];
             c1=[0 0 0];
@@ -81,6 +83,34 @@ classdef qBit < handle
             cmds=[cmds struct('type','label','val',[0 0 -1.1],'label','|1>')];
             cmds=[cmds struct('type','vector','val',qb.bvec,'size',1,'color',[0 0 1])];
             h=plotBloch(cmds);
+        end
+        function h = plotev(qb,H,t,dt)
+            clf;
+            if nargin == 3
+               dt = 0.1;
+            end
+            if (isPure(qb)<qb.epsilon)
+                warning('State is not pure and will not plot Bloch vector');
+            end
+            c=[255/255 139/255 29/255];
+            c1=[0 0 0];
+            cmds={};
+            cmds=[cmds struct('type','sphere','color',[c .1])];
+            cmds=[cmds struct('type','equator','color',[c1 .2],'color2',c)];
+            cmds=[cmds struct('type','spline','color',[c1 .2],'color2',c)];
+            cmds=[cmds struct('type','label','val',[1.1 0 0],'label','|0+1>')];
+            cmds=[cmds struct('type','label','val',[-1.1 0 0],'label','|0-1>')];
+            cmds=[cmds struct('type','label','val',[0 0 1.1],'label','|0>')];
+            cmds=[cmds struct('type','label','val',[0 0 -1.1],'label','|1>')];
+            h = plotBloch(cmds);
+            t = [0:dt:t];
+            for i = 1:length(t)
+                evolve(qb,H,dt);
+                cmd={};
+                cmd=[cmd struct('type','vector','val',qb.bvec,'size',1,'color',[0 0 1])];
+                h = plotBloch(cmd);
+                pause(0.001);
+            end
         end
     end
     

@@ -1,5 +1,4 @@
 function pl = plotBloch(cmds)
-    clf;
     hold on;
     axis equal;
     axis tight;
