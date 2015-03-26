@@ -1,6 +1,7 @@
 classdef qBit < handle
 % qBit class represents a qubit which could be stored in global qstate
 %     qBit Properties
+%         psi - spin state
 %         rho - Density matrix
 %         dephase - not implemented
 %         depolar - not implemented
@@ -16,6 +17,7 @@ classdef qBit < handle
 %         plotev - plots the evolution of the Bloch vector
 
     properties
+        psi;
         rho;
         dephase; %Not implemented
         depolar; %Not implemented
@@ -44,9 +46,11 @@ classdef qBit < handle
             if s1==1 || s2 ==1 % input of a vector
                psit = psi;
                psit = psit/norm(psit);
+               qb.psi = psit;
                qb.rho = psit*psit';
             elseif s1==s2 %input of a density matrix
                 qb.rho = psi;
+                qb.psi = [0;0];
             else
                 error('input state must be vector or square matrix');
             end 
@@ -65,6 +69,7 @@ classdef qBit < handle
         end
         function evolve(qb,H,t)
             qb.rho = qb.stevolve(qb.rho,H,t);
+            qb.psi = qb.stevolve(qb.psi,H,t);
         end
         function h = plot(qb)
             clf;
