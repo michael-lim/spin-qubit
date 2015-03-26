@@ -22,6 +22,8 @@ classdef qBit < handle
         dephase; %Not implemented
         depolar; %Not implemented
         parent;
+        tpsi;
+        trho;
     end
     properties (SetAccess = immutable) %Rounding error
        epsilon = 1e-12; 
@@ -54,6 +56,8 @@ classdef qBit < handle
             else
                 error('input state must be vector or square matrix');
             end 
+            qb.trho = qb.rho;
+            qb.tpsi = qb.psi;
         end
         function bool = isPure(qb)
             if (abs(trace(qb.rho)-1)>qb.epsilon)
@@ -68,8 +72,11 @@ classdef qBit < handle
             purity = sqrt(trace(qb.rho^2));
         end
         function evolve(qb,H,t)
-            qb.rho = qb.stevolve(qb.rho,H,t);
-            qb.psi = qb.stevolve(qb.psi,H,t);
+            dt = diff(t);
+            qb.trho = cat(3,qb.trho,qb.stevolve(qb.rho,H,dt));
+            qb.tpsi = cat(3,qb.tpsi,qb.stevolve(qb.psi,H,dt));
+            qb.rho = qb.trho(end);
+            qb.psi = qb.tpsi(end);
         end
         function h = plot(qb)
             clf;
@@ -89,11 +96,8 @@ classdef qBit < handle
             cmds=[cmds struct('type','vector','val',qb.bvec,'size',1,'color',[0 0 1])];
             h=plotBloch(cmds);
         end
-        function h = plotev(qb,H,t,dt)
+        function h = plotev(qb,H,t)
             clf;
-            if nargin == 3
-               dt = 0.1;
-            end
             if (isPure(qb)<qb.epsilon)
                 warning('State is not pure and will not plot Bloch vector');
             end
@@ -108,9 +112,9 @@ classdef qBit < handle
             cmds=[cmds struct('type','label','val',[0 0 1.1],'label','|0>')];
             cmds=[cmds struct('type','label','val',[0 0 -1.1],'label','|1>')];
             h = plotBloch(cmds);
-            t = [0:dt:t];
-            for i = 1:length(t)
-                evolve(qb,H,dt);
+            dt = diff(t);
+            for i = 1:length(dt)
+                evolve(qb,H,dt(i));
                 cmd={};
                 cmd=[cmd struct('type','vector','val',qb.bvec,'size',1,'color',[0 0 1])];
                 h = plotBloch(cmd);
@@ -126,16 +130,20 @@ classdef qBit < handle
               z = v(3)*qb.sz;  
               rho = (qb.si+x+y+z)/2;
         end
-        function y = stevolve(psii,H,t)
+        function y = stevolve(psii,H,dt)
             psit = psii;
-            Httemp = expm(1i*H*t);
-            Httempm = expm(-1i*H*t);
-            if size(psii,2)==2 
-                psit=Httemp*psit*Httempm;
-                y = psit;
-            else
-                psit=Httemp*psit;
-                y = psit;
+            for i=1:length(dt)
+                Httemp = expm(1i*H*dt(i));
+                Httempm = expm(-1i*H*dt(i));
+                if size(psii,2)==2
+                    y=zeros(2,2,length(dt));
+                    psit=Httemp*psit*Httempm;
+                    y(:,:,i)=psit;
+                else
+                    y=zeros(2,1,length(dt));
+                    psit=Httemp*psit;
+                    y(:,:,i)=psit;
+                end
             end
         end
     end
