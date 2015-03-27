@@ -1,8 +1,10 @@
 classdef qBit < handle
 % qBit class represents a qubit which could be stored in global qstate
 %     qBit Properties
-%         psi - spin state
+%         psi - Spin state
 %         rho - Density matrix
+%         tpsi - Spin state time evolution
+%         trho - Density matrix time evolution
 %         dephase - not implemented
 %         depolar - not implemented
 %         parent - global parent quantum state, not implemented
@@ -19,11 +21,11 @@ classdef qBit < handle
     properties
         psi;
         rho;
+        tpsi;
+        trho;
         dephase; %Not implemented
         depolar; %Not implemented
         parent;
-        tpsi;
-        trho;
     end
     properties (SetAccess = immutable) %Rounding error
        epsilon = 1e-12; 
@@ -56,8 +58,8 @@ classdef qBit < handle
             else
                 error('input state must be vector or square matrix');
             end 
-            qb.trho = qb.rho;
             qb.tpsi = qb.psi;
+            qb.trho = qb.rho;
         end
         function bool = isPure(qb)
             if (abs(trace(qb.rho)-1)>qb.epsilon)
@@ -72,11 +74,20 @@ classdef qBit < handle
             purity = sqrt(trace(qb.rho^2));
         end
         function evolve(qb,H,t)
-            dt = diff(t);
-            qb.trho = cat(3,qb.trho,qb.stevolve(qb.rho,H,dt));
-            qb.tpsi = cat(3,qb.tpsi,qb.stevolve(qb.psi,H,dt));
-            qb.rho = qb.trho(end);
-            qb.psi = qb.tpsi(end);
+            if length(t) ==1
+                qb.psi = qb.stevolve(qb.psi,H,t);
+                qb.rho = qb.stevolve(qb.rho,H,t);
+                qb.tpsi= cat(3,qb.tpsi,qb.psi);
+                qb.trho= cat(3,qb.trho,qb.rho);
+            else
+                dt = diff(t);
+                for i=1:length(dt)
+                    qb.psi = qb.stevolve(qb.psi,H,dt(i));
+                    qb.rho = qb.stevolve(qb.rho,H,dt(i));
+                    qb.tpsi= cat(3,qb.tpsi,qb.psi);
+                    qb.trho= cat(3,qb.trho,qb.rho);
+                end
+            end
         end
         function h = plot(qb)
             clf;
@@ -130,20 +141,16 @@ classdef qBit < handle
               z = v(3)*qb.sz;  
               rho = (qb.si+x+y+z)/2;
         end
-        function y = stevolve(psii,H,dt)
+        function y = stevolve(psii,H,t)
             psit = psii;
-            for i=1:length(dt)
-                Httemp = expm(1i*H*dt(i));
-                Httempm = expm(-1i*H*dt(i));
-                if size(psii,2)==2
-                    y=zeros(2,2,length(dt));
-                    psit=Httemp*psit*Httempm;
-                    y(:,:,i)=psit;
-                else
-                    y=zeros(2,1,length(dt));
-                    psit=Httemp*psit;
-                    y(:,:,i)=psit;
-                end
+            Httemp = expm(1i*H*t);
+            Httempm = expm(-1i*H*t);
+            if size(psii,2)==2 
+                psit=Httemp*psit*Httempm;
+                y = psit;
+            else
+                psit=Httemp*psit;
+                y = psit;
             end
         end
     end
