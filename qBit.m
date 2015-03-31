@@ -15,7 +15,7 @@ classdef qBit < handle
 %         qBit - constructor
 %         isPure - returns boolean for the purity of qubit
 %         evolve - evolves qBit according to the input Hamiltonian
-%         plot - plots Bloch vector of the qBit for pure states
+%         plot - plots Bloch vector of the qBit
 %         plotev - plots the evolution of the Bloch vector
 
     properties
