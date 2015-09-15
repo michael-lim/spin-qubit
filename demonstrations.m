@@ -1,5 +1,6 @@
 %%
 %Demonstrations of qBit class
+clear
 qb = qBit([1;0]) %Generates a qBit with psi=[1;0]
 qb.rho %Displays the density matrix
 isPure(qb) %Shows whether the qBit is pure
@@ -7,7 +8,7 @@ isPure(qb) %Shows whether the qBit is pure
 H = [0,-1i;1i,0]; %sy - this will rotate psi with respect to y-axis
 t = linspace(0,pi,100);
 evolve(qb,H,t) %This will evolve qBit for pi duration
-plotev(qb,H,t) %This shows an animated plot of qBit evolution
+%plotev(qb,H,t) %This shows an animated plot of qBit evolution
 
 %%
 %Demonstration of repeated experiments with normally distributed rotation rates
@@ -36,3 +37,29 @@ end
 
 figure(1); clf;
 plot(t,mean(Z,2))
+
+%%
+%Demonstrations of N experimental runs
+clear
+qb = qBit([1;0]) %Generates a qBit with psi=[1;0]
+
+sx=[0,1;1,0];
+sy=[0,-1i;1i,0];
+sz=[1,0;0,-1];
+
+H0 = sy; %sy - this will rotate psi with respect to y-axis
+H1 = sz; %sz - there is a random noise with a factor of sz
+t = linspace(0,pi,100);
+steps = 99;
+m = 1;
+sg = .07;
+
+N = 10;
+
+H=qb.hamrunnoise(H0,H1,t,N,m,sg);
+
+qb.nevolve(H,t,N,steps);
+
+
+
+

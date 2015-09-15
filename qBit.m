@@ -3,8 +3,8 @@ classdef qBit < handle
 %     qBit Properties
 %         psi - Spin state
 %         rho - Density matrix
-%         tpsi - Spin state time evolution
-%         trho - Density matrix time evolution
+%         cpsi - Spin state time evolution
+%         crho - Density matrix time evolution
 %         dephase - not implemented
 %         depolar - not implemented
 %         parent - global parent quantum state, not implemented
@@ -21,8 +21,10 @@ classdef qBit < handle
     properties
         psi;
         rho;
-        tpsi;
-        trho;
+        ipsi;
+        irho;
+        cpsi;
+        crho;
         dephase; %Not implemented
         depolar; %Not implemented
         parent;
@@ -58,8 +60,10 @@ classdef qBit < handle
             else
                 error('input state must be vector or square matrix');
             end 
-            qb.tpsi = qb.psi;
-            qb.trho = qb.rho;
+            qb.ipsi = qb.psi;
+            qb.irho = qb.rho;
+            qb.cpsi = struct();
+            qb.crho = struct();
         end
         function bool = isPure(qb)
             if (abs(trace(qb.rho)-1)>qb.epsilon)
@@ -73,45 +77,125 @@ classdef qBit < handle
         function purity = get.purity(qb)
             purity = sqrt(trace(qb.rho^2));
         end
-        function H = runnoise(H0,H1,N,mu,sig)
-            rot_rate = sigma*randn(1,N);
-            mu = mu*ones(1,N);
-            H = mu*H0 + rot_rate*H1;
+        function H = runnoise(qb,H0,H1,N,m,sg)
+            rot_rate = sg * randn(1,N);
+            mu = m * ones(1,N);
+            for k = 1:N
+                H(:,:,k) = mu(k)*H0 + rot_rate(k)*H1;
+            end
         end
-        function H = hamnoise(H0,H1,t,mu,sig)
-            rot_rate = sigma*randn(1,t);
-            mu = mu*ones(1,t);
-            H = mu*H0 + rot_rate*H1;
+        function H = hamnoise(qb,H0,H1,t,m,sg)
+            if length(t) == 1
+                tl = t-1;
+            else
+                tl = length(t)-1;
+            end
+            rot_rate = sg * randn(1,tl);
+            mu = m * ones(1,tl);
+            for k = 1:tl
+                H(:,:,k) = mu(k)*H0 + rot_rate(k)*H1;
+            end
+        end
+        function H = hamrunnoise(qb,H0,H1,t,N,m,sg)
+            if length(t) == 1
+                tl = t-1;
+            else
+                tl = length(t)-1;
+            end
+            for z=1:N
+                rot_rate = sg * randn(1,tl);
+                mu = m * ones(1,tl);
+                for k = 1:tl
+                    H(:,:,k,z) = mu(k)*H0 + rot_rate(k)*H1;
+                end
+            end
         end
         function evolve(qb,H,t)
-            if ndims(H) > 2
+            qb.cpsi.runs(1).psi= qb.psi;
+            qb.crho.runs(1).rho= qb.rho;
+            if ndims(H) < 3
                 if length(t) ==1
                     qb.psi = qb.stevolve(qb.psi,H,t);
                     qb.rho = qb.stevolve(qb.rho,H,t);
-                    qb.tpsi= cat(3,qb.tpsi,qb.psi);
-                    qb.trho= cat(3,qb.trho,qb.rho);
+                    qb.cpsi.runs(1).psi= cat(3,qb.cpsi.runs(1).psi,qb.psi);
+                    qb.crho.runs(1).rho= cat(3,qb.crho.runs(1).rho,qb.rho);
                 else
                     dt = diff(t);
                     for i=1:length(dt)
                         qb.psi = qb.stevolve(qb.psi,H,dt(i));
                         qb.rho = qb.stevolve(qb.rho,H,dt(i));
-                        qb.tpsi= cat(3,qb.tpsi,qb.psi);
-                        qb.trho= cat(3,qb.trho,qb.rho);
+                        qb.cpsi.runs(1).psi= cat(3,qb.cpsi.runs(1).psi,qb.psi);
+                        qb.crho.runs(1).rho= cat(3,qb.crho.runs(1).rho,qb.rho);
                     end
                 end
             else
                 dt = diff(t);
                 if (length(dt) ~= size(H,3))
-                    warning('Time step does not equal the number of Hamiltonians')
+                    warning('Time step does not equal the number of Hamiltonians.');
                 end
                 for i=1:length(dt)
                     qb.psi = qb.stevolve(qb.psi,H(:,:,i),dt(i));
                     qb.rho = qb.stevolve(qb.rho,H(:,:,i),dt(i));
-                    qb.tpsi= cat(3,qb.tpsi,qb.psi);
-                    qb.trho= cat(3,qb.trho,qb.rho);
+                    qb.cpsi.runs(1).psi= cat(3,qb.cpsi.runs(1).psi,qb.psi);
+                    qb.crho.runs(1).rho= cat(3,qb.crho.runs(1).rho,qb.rho);
                 end
             end
         end
+
+        function nevolve(qb,H,t,N,steps)
+            for z = 1:N
+                qb.psi = qb.ipsi;
+                qb.rho = qb.irho;
+                qb.cpsi.runs(z).psi= qb.psi;
+                qb.crho.runs(z).rho= qb.rho;
+                if length(t)==1
+                    tl = linspace(1,t,steps+1);
+                else
+                    tl = t;
+                end
+                dt = diff(tl);
+                switch ndims(H)
+                    case 2
+                        Hl = repmat(H,1,1,N,N);
+                    case 3
+                        Hl = repmat(H,1,1,1,N);
+                    case 4
+                        Hl = H;
+                    otherwise
+                        warning('Not a valid Hamiltonian.');
+                end
+
+                if length(dt) ~= steps || size(H,3) ~= steps
+                    warning('Time step does not equal the increment number of Hamiltonians.');
+                end
+
+                if size(H,4) ~= N
+                    warning('Number of experiments doest not equal the run number of Hamiltonians.');
+                end
+
+                for i=1:length(dt)
+                    qb.psi = qb.stevolve(qb.psi,H(:,:,i,z),dt(i));
+                    qb.rho = qb.stevolve(qb.rho,H(:,:,i,z),dt(i));
+                    qb.cpsi.runs(z).psi= cat(3,qb.cpsi.runs(z).psi,qb.psi);
+                    qb.crho.runs(z).rho= cat(3,qb.crho.runs(z).rho,qb.rho);
+                end
+            end
+        end
+
+        function s = measureSi(qb,Si)
+            X = expm(i*sy*pi/4);
+            Y = expm(i*sx*pi/4);
+            if strcmpi(Si,'x') 
+                s = (X*qb.psi)'*qb.sz*(X*qb.psi);
+            elseif strcmpi(Si,'y') 
+                s = (Y*qb.psi)'*qb.sz*(Y*qb.psi);
+            elseif strcmpi(Si,'z') 
+                s = qb.psi'*qb.sz*qb.psi;
+            else
+                warning('There is no such axis.');
+            end
+        end
+
         function h = plot(qb)
             clf;
             if (isPure(qb)<qb.epsilon)
