@@ -73,17 +73,40 @@ classdef qBit < handle
         function purity = get.purity(qb)
             purity = sqrt(trace(qb.rho^2));
         end
+        function H = runnoise(H0,H1,N,mu,sig)
+            rot_rate = sigma*randn(1,N);
+            mu = mu*ones(1,N);
+            H = mu*H0 + rot_rate*H1;
+        end
+        function H = hamnoise(H0,H1,t,mu,sig)
+            rot_rate = sigma*randn(1,t);
+            mu = mu*ones(1,t);
+            H = mu*H0 + rot_rate*H1;
+        end
         function evolve(qb,H,t)
-            if length(t) ==1
-                qb.psi = qb.stevolve(qb.psi,H,t);
-                qb.rho = qb.stevolve(qb.rho,H,t);
-                qb.tpsi= cat(3,qb.tpsi,qb.psi);
-                qb.trho= cat(3,qb.trho,qb.rho);
+            if ndims(H) > 2
+                if length(t) ==1
+                    qb.psi = qb.stevolve(qb.psi,H,t);
+                    qb.rho = qb.stevolve(qb.rho,H,t);
+                    qb.tpsi= cat(3,qb.tpsi,qb.psi);
+                    qb.trho= cat(3,qb.trho,qb.rho);
+                else
+                    dt = diff(t);
+                    for i=1:length(dt)
+                        qb.psi = qb.stevolve(qb.psi,H,dt(i));
+                        qb.rho = qb.stevolve(qb.rho,H,dt(i));
+                        qb.tpsi= cat(3,qb.tpsi,qb.psi);
+                        qb.trho= cat(3,qb.trho,qb.rho);
+                    end
+                end
             else
                 dt = diff(t);
+                if (length(dt) ~= size(H,3))
+                    warning('Time step does not equal the number of Hamiltonians')
+                end
                 for i=1:length(dt)
-                    qb.psi = qb.stevolve(qb.psi,H,dt(i));
-                    qb.rho = qb.stevolve(qb.rho,H,dt(i));
+                    qb.psi = qb.stevolve(qb.psi,H(:,:,i),dt(i));
+                    qb.rho = qb.stevolve(qb.rho,H(:,:,i),dt(i));
                     qb.tpsi= cat(3,qb.tpsi,qb.psi);
                     qb.trho= cat(3,qb.trho,qb.rho);
                 end

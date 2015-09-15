@@ -54,7 +54,7 @@ clf;
 figure(1);
 hold on;
 plot(tavg1, 'blue','DisplayName','expm');
-plot(tavg2, 'yellow','DisplayName','demo2');
+%plot(tavg2, 'yellow','DisplayName','demo2');
 plot(tavg3, 'green','DisplayName','demo3');
 legend show
 hold off;
@@ -62,7 +62,7 @@ hold off;
 figure(2);
 hold on;
 errorbar(t,tavg1,tstd1,'DisplayName','expm');
-errorbar(t,tavg2,tstd2,'DisplayName','demo2');
+%errorbar(t,tavg2,tstd2,'DisplayName','demo2');
 errorbar(t,tavg3,tstd3,'DisplayName','demo3');
 legend show
 hold off;
