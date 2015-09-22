@@ -40,26 +40,39 @@ plot(t,mean(Z,2))
 
 %%
 %Demonstrations of N experimental runs
-clear
+clear;clc;
 qb = qBit([1;0]) %Generates a qBit with psi=[1;0]
 
 sx=[0,1;1,0];
 sy=[0,-1i;1i,0];
 sz=[1,0;0,-1];
 
-H0 = sy; %sy - this will rotate psi with respect to y-axis
-H1 = sz; %sz - there is a random noise with a factor of sz
-t = linspace(0,pi,100);
-steps = 99;
+H0 = sx; %this will rotate psi 
+H1 = sx; %there is a random noise
+t = linspace(0,10*pi,100);
+steps = length(t)-1;
 m = 1;
-sg = .07;
+sg = .3;
 
-N = 10;
+N = 500;
 
 H=qb.hamrunnoise(H0,H1,t,N,m,sg);
 
 qb.nevolve(H,t,N,steps);
 
 
+sn=qb.measureSiN('z',N);
 
+figure(1); clf;
+plot(t,mean(sn,2))
 
+%%
+%expsine = @(b,x) (b(1).*exp(-b(2).*x).*sin(b(3).*x+b(4)))';
+beta = qb.fitesin(t,mean(sn,2),[1,0.01,pi/2,0]);
+
+figure(2); clf;
+hold on;
+plot(t,mean(sn,2), 'red');
+expsine = @(b,x) (b(1).*exp(-b(2).*x).*sin(b(3).*x+b(4)))';
+plot(t,expsine(beta,t), 'blue');
+hold off;

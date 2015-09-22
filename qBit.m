@@ -170,7 +170,7 @@ classdef qBit < handle
                 end
 
                 if size(H,4) ~= N
-                    warning('Number of experiments doest not equal the run number of Hamiltonians.');
+                    warning('Number of experiments does not equal the run number of Hamiltonians.');
                 end
 
                 for i=1:length(dt)
@@ -183,17 +183,48 @@ classdef qBit < handle
         end
 
         function s = measureSi(qb,Si)
-            X = expm(i*sy*pi/4);
-            Y = expm(i*sx*pi/4);
+            X = expm(1i*qb.sy*pi/4);
+            Y = expm(1i*qb.sx*pi/4);
             if strcmpi(Si,'x') 
-                s = (X*qb.psi)'*qb.sz*(X*qb.psi);
+                s = trace(qb.sz*X*qb.rho);
             elseif strcmpi(Si,'y') 
-                s = (Y*qb.psi)'*qb.sz*(Y*qb.psi);
+                s = trace(qb.sz*Y*qb.rho);
             elseif strcmpi(Si,'z') 
-                s = qb.psi'*qb.sz*qb.psi;
+                s = trace(qb.sz*qb.rho);
             else
                 warning('There is no such axis.');
             end
+        end
+        
+        function sn = measureSiN(qb,Si,N)
+            X = expm(1i*qb.sy*pi/4);
+            Y = expm(1i*qb.sx*pi/4);
+            sn = zeros(size(qb.crho.runs(1).rho,3),N);
+            for k=1:N
+            rtemp = qb.crho.runs(k).rho;
+                for j= 1:size(rtemp,3)
+                    rt(:,:) = rtemp(:,:,j);
+                    if strcmpi(Si,'x') 
+                        sn(j,k) = real(trace(qb.sz*X*rt));
+                    elseif strcmpi(Si,'y') 
+                        sn(j,k) = real(trace(qb.sz*Y*rt));
+                    elseif strcmpi(Si,'z') 
+                        sn(j,k) = real(trace(qb.sz*rt));
+                    else
+                        warning('There is no such axis.');
+                    end
+                end
+            end
+        end
+
+        function beta = fitesin(qb,t,sn,beta0)
+            expsine = @(b,x) (b(1).*exp(-b(2).*x).*sin(b(3).*x+b(4)))';
+            if length(beta0) ~= 4
+                b0 = [1,0.01,pi/2,0]; %Initial guess which works for most cases
+            else
+                b0 = beta0;
+            end
+            beta = nlinfit(t,sn,expsine,beta0);
         end
 
         function h = plot(qb)
