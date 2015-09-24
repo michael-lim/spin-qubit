@@ -32,7 +32,8 @@ classdef quState < handle
        epsilon = 1e-12; 
     end
     properties (Dependent = true, SetAccess = private)
-        bvec;
+        bvec1;
+        bvec2;
         purity;
     end
     properties (Constant, Hidden)
@@ -40,81 +41,83 @@ classdef quState < handle
         sx = [0 1;1 0];
         sy = [0 -1i; 1i 0];
         sz = [1 0;0 -1];
+        sx1 = kron(sx,si);
+        sy1 = kron(sy,si);
+        sz1 = kron(sz,si);
+        sx2 = kron(si,sx);
+        sy2 = kron(si,sy);
+        sz2 = kron(si,sz);
     end
     
     methods
         function qs = quState(psi1,psi2) %Constructor
-            switch nargin
-                case 2
-                    if iscolumn(psi1)==1
-                        ptemp1 = psi1;
-                    else
-                        ptemp1 = psi1';
-                    end
-                    if iscolumn(psi2)==1
-                        ptemp2 = psi2;
-                    else
-                        ptemp2 = psi2';
-                    end
-                    if isequal(psi1,psi2)
-                        s1 = size(psi1);
-                        switch s1(1)
-                            case 2
-                                if s1(2) == 1
-                                    qs.psi = kron(ptemp,ptemp);
-                                    qs.rho = qs.psi*qs.psi';
-                                    disp('Two 2 x 1 inputs detected; will initialize with the product vector');
-                                elseif s1(2) == 2
-                                    qs.psi = kron(ptemp,ptemp);
-                                    qs.rho = qs.psi*qs.psi';
-                                    disp('Two 2 x 2 inputs detected; will initialize with the product density matrix');
-                            otherwise
-                                warning('Not a valid input dimension');
-                            end
-                        end
-                    else 
-                        warning('Inputs have different dimensions');
-                    end
-
-                case 1
-                    s = size(psi1);
-
-                    if isequal(s,[2,2])
+            if nargin == 2
+                
+                if iscolumn(psi1)
+                    ptemp1 = psi1;
+                else
+                    ptemp1 = psi1';
+                end
+                if iscolumn(psi2)
+                    ptemp2 = psi2;
+                else
+                    ptemp2 = psi2';
+                end
+                s1 = size(psi1);
+                s2 = size(psi2);
+                if isequal(s1,s2)
+                    
+                    if isequal(s1,[2,1])
+                        qs.psi = kron(psi1,psi2);
+                        qs.rho = qs.psi*qs.psi';
+                        disp('Two 2 x 1 inputs detected; will initialize with the product vector');
+                    elseif isequal(s1,[2,2])
                         qs.psi = [0;0;0;0];
-                        qs.rho = kron(psi1,psi1);
-                        disp('One 2 x 2 input detected; will initialize with duplicate density matrices');
-                    if isequal(s,[4,4])
-                        qs.psi = [0;0;0;0];
-                        qs.rho = psi1;
-                        disp('One 4 x 4 input detected; will initialize with the density matrix');
+                        qs.rho = kron(psi1,psi2);
+                        disp('Two 2 x 2 inputs detected; will initialize with the product density matrix');
                     else
-                        if iscolumn(psi1)==1
-                            ptemp = psi1;
-                        else
-                            ptemp = psi1';
-                        end
-                        
-                        switch s(1)
-                            case 2
-                                qs.psi = kron(ptemp,ptemp);
-                                qs.rho = qs.psi*qs.psi';
-                                disp('One 2 x 1 input detected; will initialize with duplicate vectors');
-                            case 4
-                                qs.psi = ptemp;
-                                qs.rho = qs.psi*qs.psi';
-                                disp('One 4 x 1 input detected; will initialize with the product vector');
-                            otherwise
-                                warning('Not a valid input dimension');
-                            end
-                        end
+                        warning('Not a valid input dimension');
                     end
+                else 
+                    warning('Inputs have invalid or different dimensions');
+                end
 
-                case 0
+            elseif nargin == 1
+                s = size(psi1);
+
+                if isequal(s,[2,2])
                     qs.psi = [0;0;0;0];
+                    qs.rho = kron(psi1,psi1);
+                    disp('One 2 x 2 input detected; will initialize with duplicate density matrices');
+                elseif isequal(s,[4,4])
+                    qs.psi = [0;0;0;0];
+                    qs.rho = psi1;
+                    disp('One 4 x 4 input detected; will initialize with the density matrix');
+                elseif isequal(s,[2,1])
+                    qs.psi = kron(psi1,psi1);
                     qs.rho = qs.psi*qs.psi';
-                    disp('No input detected; will initialize with zero vectors');
-                otherwise
-                    warning('Too many inputs!');
+                    disp('One 2 x 1 input detected; will initialize with duplicate vectors');
+                elseif isequal(s,[1,2])
+                    qs.psi = kron(psi1',psi1');
+                    qs.rho = qs.psi*qs.psi';
+                    disp('One 2 x 1 input detected; will initialize with duplicate vectors');
+                elseif isequal(s,[4,1])
+                    qs.psi = psi1;
+                    qs.rho = qs.psi*qs.psi';
+                    disp('One 4 x 1 input detected; will initialize with the product vector');
+                elseif isequal(s,[1,4])
+                    qs.psi = psi1';
+                    qs.rho = qs.psi*qs.psi';
+                    disp('One 4 x 1 input detected; will initialize with the product vector');
+                else
+                    warning('Not a valid dimension input');
+                end
+            elseif nargin ==0
+                qs.psi = [0;0;0;0];
+                qs.rho = qs.psi*qs.psi';
+                disp('No input detected; will initialize with zero vectors');
+            else
+                warning('Too many inputs!');
             end
 
             qs.ipsi = qs.psi;
@@ -128,8 +131,11 @@ classdef quState < handle
             end
             bool = abs(qs.purity-1)<qs.epsilon;
         end
-        function bvec = get.bvec(qs)
-            bvec = real([trace(qs.rho*qs.sx), trace(qs.rho*qs.sy), trace(qs.rho*qs.sz)]);
+        function bvec = get.bvec1(qs)
+            bvec = real([trace(qs.rho*qs.sx1), trace(qs.rho*qs.sy1), trace(qs.rho*qs.sz1)]);
+        end
+        function bvec = get.bvec2(qs)
+            bvec = real([trace(qs.rho*qs.sx2), trace(qs.rho*qs.sy2), trace(qs.rho*qs.sz2)]);
         end
         function purity = get.purity(qs)
             purity = sqrt(trace(qs.rho^2));

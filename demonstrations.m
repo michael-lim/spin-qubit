@@ -1,14 +1,14 @@
 %%
-%Demonstrations of qBit class
+%Demonstrations of quBit class
 clear
-qb = qBit([1;0]) %Generates a qBit with psi=[1;0]
+qb = quBit([1;0]) %Generates a quBit with psi=[1;0]
 qb.rho %Displays the density matrix
-isPure(qb) %Shows whether the qBit is pure
+isPure(qb) %Shows whether the quBit is pure
 
 H = [0,-1i;1i,0]; %sy - this will rotate psi with respect to y-axis
 t = linspace(0,pi,100);
-evolve(qb,H,t) %This will evolve qBit for pi duration
-%plotev(qb,H,t) %This shows an animated plot of qBit evolution
+evolve(qb,H,t) %This will evolve quBit for pi duration
+%plotev(qb,H,t) %This shows an animated plot of quBit evolution
 
 %%
 %Demonstration of repeated experiments with normally distributed rotation rates
@@ -27,7 +27,7 @@ dt = diff(t);
 
 Z = zeros(length(t),length(rot_rate));
 for i = 1:length(rot_rate)
-   qb = qBit([1;0]);
+   qb = quBit([1;0]);
    for j = 1:length(t)-1
        qb.evolve([0,1;1,0]*rot_rate(i),dt(j));
        tmpPsi = qb.psi;
@@ -41,7 +41,7 @@ plot(t,mean(Z,2))
 %%
 %Demonstrations of N experimental runs
 clear;clc;
-qb = qBit([1;0]) %Generates a qBit with psi=[1;0]
+qb = quBit([1;0]) %Generates a quBit with psi=[1;0]
 
 sx=[0,1;1,0];
 sy=[0,-1i;1i,0];
