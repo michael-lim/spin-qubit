@@ -1,6 +1,6 @@
-classdef qState < handle
-% qState class represents a quantum state which could be stored in global qState
-%     qState Properties
+classdef quState < handle
+% quState class represents a quantum state which could be stored in global quState
+%     quState Properties
 %         psi - Spin state
 %         rho - Density matrix
 %         cpsi - Spin state time evolution
@@ -10,8 +10,8 @@ classdef qState < handle
 %         epsilon - rounding error
 %         bvec - Bloch vector of the quantum state for pure states
 %         purity - the purity of quantum state
-%     qState Methods
-%         qBit - constructor
+%     quState Methods
+%         quState - constructor
 %         isPure - returns boolean for the purity of qubit
 %         evolve - evolves the bits according to the input Hamiltonian
 %         plot - plots Bloch vector of the qubits
@@ -43,47 +43,105 @@ classdef qState < handle
     end
     
     methods
-        function qb = qBit(psi) %Constructor
-            if nargin <1 || isempty(psi)
-               psi = [1;0]; 
+        function qs = quState(psi1,psi2) %Constructor
+            switch nargin
+                case 2
+                    if iscolumn(psi1)==1
+                        ptemp1 = psi1;
+                    else
+                        ptemp1 = psi1';
+                    end
+                    if iscolumn(psi2)==1
+                        ptemp2 = psi2;
+                    else
+                        ptemp2 = psi2';
+                    end
+                    if isequal(psi1,psi2)
+                        s1 = size(psi1);
+                        switch s1(1)
+                            case 2
+                                if s1(2) == 1
+                                    qs.psi = kron(ptemp,ptemp);
+                                    qs.rho = qs.psi*qs.psi';
+                                    disp('Two 2 x 1 inputs detected; will initialize with the product vector');
+                                elseif s1(2) == 2
+                                    qs.psi = kron(ptemp,ptemp);
+                                    qs.rho = qs.psi*qs.psi';
+                                    disp('Two 2 x 2 inputs detected; will initialize with the product density matrix');
+                            otherwise
+                                warning('Not a valid input dimension');
+                            end
+                        end
+                    else 
+                        warning('Inputs have different dimensions');
+                    end
+
+                case 1
+                    s = size(psi1);
+
+                    if isequal(s,[2,2])
+                        qs.psi = [0;0;0;0];
+                        qs.rho = kron(psi1,psi1);
+                        disp('One 2 x 2 input detected; will initialize with duplicate density matrices');
+                    if isequal(s,[4,4])
+                        qs.psi = [0;0;0;0];
+                        qs.rho = psi1;
+                        disp('One 4 x 4 input detected; will initialize with the density matrix');
+                    else
+                        if iscolumn(psi1)==1
+                            ptemp = psi1;
+                        else
+                            ptemp = psi1';
+                        end
+                        
+                        switch s(1)
+                            case 2
+                                qs.psi = kron(ptemp,ptemp);
+                                qs.rho = qs.psi*qs.psi';
+                                disp('One 2 x 1 input detected; will initialize with duplicate vectors');
+                            case 4
+                                qs.psi = ptemp;
+                                qs.rho = qs.psi*qs.psi';
+                                disp('One 4 x 1 input detected; will initialize with the product vector');
+                            otherwise
+                                warning('Not a valid input dimension');
+                            end
+                        end
+                    end
+
+                case 0
+                    qs.psi = [0;0;0;0];
+                    qs.rho = qs.psi*qs.psi';
+                    disp('No input detected; will initialize with zero vectors');
+                otherwise
+                    warning('Too many inputs!');
             end
-            [s1, s2]= size(psi);
-            if s1==1 || s2 ==1 % input of a vector
-               psit = psi;
-               psit = psit/norm(psit);
-               qb.psi = psit;
-               qb.rho = psit*psit';
-            elseif s1==s2 %input of a density matrix
-                qb.rho = psi;
-                qb.psi = [0;0];
-            else
-                error('input state must be vector or square matrix');
-            end 
-            qb.ipsi = qb.psi;
-            qb.irho = qb.rho;
-            qb.cpsi = struct();
-            qb.crho = struct();
+
+            qs.ipsi = qs.psi;
+            qs.irho = qs.rho;
+            qs.cpsi = struct();
+            qs.crho = struct();
         end
-        function bool = isPure(qb)
-            if (abs(trace(qb.rho)-1)>qb.epsilon)
+        function bool = isPure(qs)
+            if (abs(trace(qs.rho)-1)>qs.epsilon)
                 warning('Trace rho not equal to 1')
             end
-            bool = abs(qb.purity-1)<qb.epsilon;
+            bool = abs(qs.purity-1)<qs.epsilon;
         end
-        function bvec = get.bvec(qb)
-            bvec = real([trace(qb.rho*qb.sx), trace(qb.rho*qb.sy), trace(qb.rho*qb.sz)]);
+        function bvec = get.bvec(qs)
+            bvec = real([trace(qs.rho*qs.sx), trace(qs.rho*qs.sy), trace(qs.rho*qs.sz)]);
         end
-        function purity = get.purity(qb)
-            purity = sqrt(trace(qb.rho^2));
+        function purity = get.purity(qs)
+            purity = sqrt(trace(qs.rho^2));
         end
-        function H = runnoise(qb,H0,H1,N,m,sg)
+        function H = runnoise(qs,H0,H1,N,m,sg)
             rot_rate = sg * randn(1,N);
             mu = m * ones(1,N);
             for k = 1:N
                 H(:,:,k) = mu(k)*H0 + rot_rate(k)*H1;
             end
         end
-        function H = hamnoise(qb,H0,H1,t,m,sg)
+        function H = hamnoise(qs,H0,H1,t,m,sg)
             if length(t) == 1
                 tl = t-1;
             else
@@ -95,7 +153,7 @@ classdef qState < handle
                 H(:,:,k) = mu(k)*H0 + rot_rate(k)*H1;
             end
         end
-        function H = hamrunnoise(qb,H0,H1,t,N,m,sg)
+        function H = hamrunnoise(qs,H0,H1,t,N,m,sg)
             if length(t) == 1
                 tl = t-1;
             else
@@ -109,22 +167,22 @@ classdef qState < handle
                 end
             end
         end
-        function evolve(qb,H,t)
-            qb.cpsi.runs(1).psi= qb.psi;
-            qb.crho.runs(1).rho= qb.rho;
+        function evolve(qs,H,t)
+            qs.cpsi.runs(1).psi= qs.psi;
+            qs.crho.runs(1).rho= qs.rho;
             if ndims(H) < 3
                 if length(t) ==1
-                    qb.psi = qb.stevolve(qb.psi,H,t);
-                    qb.rho = qb.stevolve(qb.rho,H,t);
-                    qb.cpsi.runs(1).psi= cat(3,qb.cpsi.runs(1).psi,qb.psi);
-                    qb.crho.runs(1).rho= cat(3,qb.crho.runs(1).rho,qb.rho);
+                    qs.psi = qs.stevolve(qs.psi,H,t);
+                    qs.rho = qs.stevolve(qs.rho,H,t);
+                    qs.cpsi.runs(1).psi= cat(3,qs.cpsi.runs(1).psi,qs.psi);
+                    qs.crho.runs(1).rho= cat(3,qs.crho.runs(1).rho,qs.rho);
                 else
                     dt = diff(t);
                     for i=1:length(dt)
-                        qb.psi = qb.stevolve(qb.psi,H,dt(i));
-                        qb.rho = qb.stevolve(qb.rho,H,dt(i));
-                        qb.cpsi.runs(1).psi= cat(3,qb.cpsi.runs(1).psi,qb.psi);
-                        qb.crho.runs(1).rho= cat(3,qb.crho.runs(1).rho,qb.rho);
+                        qs.psi = qs.stevolve(qs.psi,H,dt(i));
+                        qs.rho = qs.stevolve(qs.rho,H,dt(i));
+                        qs.cpsi.runs(1).psi= cat(3,qs.cpsi.runs(1).psi,qs.psi);
+                        qs.crho.runs(1).rho= cat(3,qs.crho.runs(1).rho,qs.rho);
                     end
                 end
             else
@@ -133,20 +191,20 @@ classdef qState < handle
                     warning('Time step does not equal the number of Hamiltonians.');
                 end
                 for i=1:length(dt)
-                    qb.psi = qb.stevolve(qb.psi,H(:,:,i),dt(i));
-                    qb.rho = qb.stevolve(qb.rho,H(:,:,i),dt(i));
-                    qb.cpsi.runs(1).psi= cat(3,qb.cpsi.runs(1).psi,qb.psi);
-                    qb.crho.runs(1).rho= cat(3,qb.crho.runs(1).rho,qb.rho);
+                    qs.psi = qs.stevolve(qs.psi,H(:,:,i),dt(i));
+                    qs.rho = qs.stevolve(qs.rho,H(:,:,i),dt(i));
+                    qs.cpsi.runs(1).psi= cat(3,qs.cpsi.runs(1).psi,qs.psi);
+                    qs.crho.runs(1).rho= cat(3,qs.crho.runs(1).rho,qs.rho);
                 end
             end
         end
 
-        function nevolve(qb,H,t,N,steps)
+        function nevolve(qs,H,t,N,steps)
             for z = 1:N
-                qb.psi = qb.ipsi;
-                qb.rho = qb.irho;
-                qb.cpsi.runs(z).psi= qb.psi;
-                qb.crho.runs(z).rho= qb.rho;
+                qs.psi = qs.ipsi;
+                qs.rho = qs.irho;
+                qs.cpsi.runs(z).psi= qs.psi;
+                qs.crho.runs(z).rho= qs.rho;
                 if length(t)==1
                     tl = linspace(1,t,steps+1);
                 else
@@ -173,42 +231,42 @@ classdef qState < handle
                 end
 
                 for i=1:length(dt)
-                    qb.psi = qb.stevolve(qb.psi,H(:,:,i,z),dt(i));
-                    qb.rho = qb.stevolve(qb.rho,H(:,:,i,z),dt(i));
-                    qb.cpsi.runs(z).psi= cat(3,qb.cpsi.runs(z).psi,qb.psi);
-                    qb.crho.runs(z).rho= cat(3,qb.crho.runs(z).rho,qb.rho);
+                    qs.psi = qs.stevolve(qs.psi,H(:,:,i,z),dt(i));
+                    qs.rho = qs.stevolve(qs.rho,H(:,:,i,z),dt(i));
+                    qs.cpsi.runs(z).psi= cat(3,qs.cpsi.runs(z).psi,qs.psi);
+                    qs.crho.runs(z).rho= cat(3,qs.crho.runs(z).rho,qs.rho);
                 end
             end
         end
 
-        function s = measureSi(qb,Si)
-            X = expm(1i*qb.sy*pi/4);
-            Y = expm(1i*qb.sx*pi/4);
+        function s = measureSi(qs,Si)
+            X = expm(1i*qs.sy*pi/4);
+            Y = expm(1i*qs.sx*pi/4);
             if strcmpi(Si,'x') 
-                s = trace(qb.sz*X*qb.rho);
+                s = trace(qs.sz*X*qs.rho);
             elseif strcmpi(Si,'y') 
-                s = trace(qb.sz*Y*qb.rho);
+                s = trace(qs.sz*Y*qs.rho);
             elseif strcmpi(Si,'z') 
-                s = trace(qb.sz*qb.rho);
+                s = trace(qs.sz*qs.rho);
             else
                 warning('There is no such axis.');
             end
         end
         
-        function sn = measureSiN(qb,Si,N)
-            X = expm(1i*qb.sy*pi/4);
-            Y = expm(1i*qb.sx*pi/4);
-            sn = zeros(size(qb.crho.runs(1).rho,3),N);
+        function sn = measureSiN(qs,Si,N)
+            X = expm(1i*qs.sy*pi/4);
+            Y = expm(1i*qs.sx*pi/4);
+            sn = zeros(size(qs.crho.runs(1).rho,3),N);
             for k=1:N
-            rtemp = qb.crho.runs(k).rho;
+            rtemp = qs.crho.runs(k).rho;
                 for j= 1:size(rtemp,3)
                     rt(:,:) = rtemp(:,:,j);
                     if strcmpi(Si,'x') 
-                        sn(j,k) = real(trace(qb.sz*X*rt));
+                        sn(j,k) = real(trace(qs.sz*X*rt));
                     elseif strcmpi(Si,'y') 
-                        sn(j,k) = real(trace(qb.sz*Y*rt));
+                        sn(j,k) = real(trace(qs.sz*Y*rt));
                     elseif strcmpi(Si,'z') 
-                        sn(j,k) = real(trace(qb.sz*rt));
+                        sn(j,k) = real(trace(qs.sz*rt));
                     else
                         warning('There is no such axis.');
                     end
@@ -216,7 +274,7 @@ classdef qState < handle
             end
         end
 
-        function beta = fitesin(qb,t,sn,beta0)
+        function beta = fitesin(qs,t,sn,beta0)
             expsine = @(b,x) (b(1).*exp(-b(2).*x).*sin(b(3).*x+b(4)))';
             if length(beta0) ~= 4
                 b0 = [1,0.01,pi/2,0]; %Initial guess which works for most cases
@@ -226,9 +284,9 @@ classdef qState < handle
             beta = nlinfit(t,sn,expsine,beta0);
         end
 
-        function h = plot(qb)
+        function h = plot(qs)
             clf;
-            if (isPure(qb)<qb.epsilon)
+            if (isPure(qs)<qs.epsilon)
                 warning('State is not pure and will not plot Bloch vector');
             end
             c=[255/255 139/255 29/255];
@@ -241,12 +299,12 @@ classdef qState < handle
             cmds=[cmds struct('type','label','val',[-1.1 0 0],'label','|0-1>')];
             cmds=[cmds struct('type','label','val',[0 0 1.1],'label','|0>')];
             cmds=[cmds struct('type','label','val',[0 0 -1.1],'label','|1>')];
-            cmds=[cmds struct('type','vector','val',qb.bvec,'size',1,'color',[0 0 1])];
+            cmds=[cmds struct('type','vector','val',qs.bvec,'size',1,'color',[0 0 1])];
             h=plotBloch(cmds);
         end
-        function h = plotev(qb,H,t)
+        function h = plotev(qs,H,t)
             clf;
-            if (isPure(qb)<qb.epsilon)
+            if (isPure(qs)<qs.epsilon)
                 warning('State is not pure and will not plot Bloch vector');
             end
             c=[255/255 139/255 29/255];
@@ -262,9 +320,9 @@ classdef qState < handle
             h = plotBloch(cmds);
             dt = diff(t);
             for i = 1:length(dt)
-                evolve(qb,H,dt(i));
+                evolve(qs,H,dt(i));
                 cmd={};
-                cmd=[cmd struct('type','vector','val',qb.bvec,'size',1,'color',[0 0 1])];
+                cmd=[cmd struct('type','vector','val',qs.bvec,'size',1,'color',[0 0 1])];
                 h = plotBloch(cmd);
                 pause(0.001);
             end
@@ -273,10 +331,10 @@ classdef qState < handle
     
     methods (Static)
         function rho = bloch2rho(v)
-              x = v(1)*qb.sx;
-              y = v(2)*qb.sy;
-              z = v(3)*qb.sz;  
-              rho = (qb.si+x+y+z)/2;
+              x = v(1)*qs.sx;
+              y = v(2)*qs.sy;
+              z = v(3)*qs.sz;  
+              rho = (qs.si+x+y+z)/2;
         end
         function y = stevolve(psii,H,t)
             psit = psii;

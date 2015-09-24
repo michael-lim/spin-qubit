@@ -1,6 +1,6 @@
-classdef qBit < handle
-% qBit class represents a qubit which could be stored in global qstate
-%     qBit Properties
+classdef quBit < handle
+% quBit class represents a qubit which could be stored in global qstate
+%     quBit Properties
 %         psi - Spin state
 %         rho - Density matrix
 %         cpsi - Spin state time evolution
@@ -9,13 +9,13 @@ classdef qBit < handle
 %         depolar - not implemented
 %         parent - global parent quantum state, not implemented
 %         epsilon - rounding error
-%         bvec - Bloch vector of the qbit for pure states
+%         bvec - Bloch vector of the qubit for pure states
 %         purity - the purity of qubit
-%     qBit Methods
-%         qBit - constructor
+%     quBit Methods
+%         quBit - constructor
 %         isPure - returns boolean for the purity of qubit
-%         evolve - evolves qBit according to the input Hamiltonian
-%         plot - plots Bloch vector of the qBit
+%         evolve - evolves quBit according to the input Hamiltonian
+%         plot - plots Bloch vector of the quBit
 %         plotev - plots the evolution of the Bloch vector
 
     properties
@@ -44,7 +44,7 @@ classdef qBit < handle
     end
     
     methods
-        function qb = qBit(psi) %Constructor
+        function qb = quBit(psi) %Constructor
             if nargin <1 || isempty(psi)
                psi = [1;0]; 
             end
