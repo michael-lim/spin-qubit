@@ -41,12 +41,12 @@ classdef quState < handle
         sx = [0 1;1 0];
         sy = [0 -1i; 1i 0];
         sz = [1 0;0 -1];
-        sx1 = kron(sx,si);
-        sy1 = kron(sy,si);
-        sz1 = kron(sz,si);
-        sx2 = kron(si,sx);
-        sy2 = kron(si,sy);
-        sz2 = kron(si,sz);
+        sx1 = kron([0 1;1 0],eye(2));
+        sy1 = kron([0 -1i; 1i 0],eye(2));
+        sz1 = kron([1 0;0 -1],eye(2));
+        sx2 = kron(eye(2),[0 1;1 0]);
+        sy2 = kron(eye(2),[0 -1i; 1i 0]);
+        sz2 = kron(eye(2),[1 0;0 -1]);
     end
     
     methods
