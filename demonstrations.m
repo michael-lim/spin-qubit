@@ -16,9 +16,9 @@ sx=[0,1;1,0];
 sy=[0,-1i;1i,0];
 sz=[1,0;0,-1];
 mu = 1;
-sigma = .07;
+sigma = .03;
 
-N = 500;
+N = 50;
 
 rot_rate = mu + sigma*randn(1,N);
 
@@ -54,17 +54,21 @@ steps = length(t)-1;
 m = 1;
 sg = .3;
 
-N = 500;
+N = 50;
 
 H=qb.hamrunnoise(H0,H1,t,N,m,sg);
 
 qb.nevolve(H,t,N,steps);
-
-
-sn=qb.measureSiN('z',N);
-
+%%
+X = measureSiN(qb,'x',N);
+Y = measureSiN(qb,'y',N);
+Z = measureSiN(qb,'z',N);
 figure(1); clf;
-plot(t,mean(sn,2))
+hold on;
+plot(t,mean(X,2),'r')
+plot(t,mean(Y,2),'b')
+plot(t,mean(Z,2),'k')
+hold off;
 
 %%
 %expsine = @(b,x) (b(1).*exp(-b(2).*x).*sin(b(3).*x+b(4)))';

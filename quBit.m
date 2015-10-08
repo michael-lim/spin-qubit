@@ -183,8 +183,8 @@ classdef quBit < handle
         end
 
         function s = measureSi(qb,Si)
-            X = expm(1i*qb.sy*pi/4);
-            Y = expm(1i*qb.sx*pi/4);
+            X = expm(1i*qb.sy*pi/2);
+            Y = expm(1i*qb.sx*pi/2);
             if strcmpi(Si,'x') 
                 s = trace(qb.sz*X*qb.rho);
             elseif strcmpi(Si,'y') 
@@ -197,8 +197,8 @@ classdef quBit < handle
         end
         
         function sn = measureSiN(qb,Si,N)
-            X = expm(1i*qb.sy*pi/4);
-            Y = expm(1i*qb.sx*pi/4);
+            X = expm(1i*qb.sy*pi/2);
+            Y = expm(1i*qb.sx*pi/2);
             sn = zeros(size(qb.crho.runs(1).rho,3),N);
             for k=1:N
             rtemp = qb.crho.runs(k).rho;

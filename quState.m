@@ -198,7 +198,7 @@ classdef quState < handle
                 end
                 for i=1:length(dt)
                     qs.psi = qs.stevolve(qs.psi,H(:,:,i),dt(i));
-                    qs.rho = qs.stevolve(qs.rho,H(:,:,i),dt(i));
+                    qs.rho = qs.psi*qs.psi';
                     qs.cpsi.runs(1).psi= cat(3,qs.cpsi.runs(1).psi,qs.psi);
                     qs.crho.runs(1).rho= cat(3,qs.crho.runs(1).rho,qs.rho);
                 end
@@ -238,45 +238,76 @@ classdef quState < handle
 
                 for i=1:length(dt)
                     qs.psi = qs.stevolve(qs.psi,H(:,:,i,z),dt(i));
-                    qs.rho = qs.stevolve(qs.rho,H(:,:,i,z),dt(i));
+                    qs.rho = qs.psi*qs.psi';
                     qs.cpsi.runs(z).psi= cat(3,qs.cpsi.runs(z).psi,qs.psi);
                     qs.crho.runs(z).rho= cat(3,qs.crho.runs(z).rho,qs.rho);
                 end
             end
         end
 
-        function s = measureSi(qs,Si)
-            X = expm(1i*qs.sy*pi/4);
-            Y = expm(1i*qs.sx*pi/4);
-            if strcmpi(Si,'x') 
-                s = trace(qs.sz*X*qs.rho);
-            elseif strcmpi(Si,'y') 
-                s = trace(qs.sz*Y*qs.rho);
-            elseif strcmpi(Si,'z') 
-                s = trace(qs.sz*qs.rho);
+        function s = measureSi12(qs,Si,ind)
+            if ind == 1
+                if strcmpi(Si,'x') 
+                    s = trace(qs.rho*qs.sx1);
+                elseif strcmpi(Si,'y') 
+                    s = trace(qs.rho*qs.sy1);
+                elseif strcmpi(Si,'z') 
+                    s = trace(qs.rho*qs.sz1);
+                else
+                    warning('There is no such axis.');
+                end
+            elseif ind ==2
+                if strcmpi(Si,'x') 
+                    s = trace(qs.rho*qs.sx2);
+                elseif strcmpi(Si,'y') 
+                    s = trace(qs.rho*qs.sy2);
+                elseif strcmpi(Si,'z') 
+                    s = trace(qs.rho*qs.sz2);
+                else
+                    warning('There is no such axis.');
+                end
             else
-                warning('There is no such axis.');
+                warning('Wrong index of qubit');
             end
         end
         
-        function sn = measureSiN(qs,Si,N)
-            X = expm(1i*qs.sy*pi/4);
-            Y = expm(1i*qs.sx*pi/4);
-            sn = zeros(size(qs.crho.runs(1).rho,3),N);
-            for k=1:N
-            rtemp = qs.crho.runs(k).rho;
-                for j= 1:size(rtemp,3)
-                    rt(:,:) = rtemp(:,:,j);
-                    if strcmpi(Si,'x') 
-                        sn(j,k) = real(trace(qs.sz*X*rt));
-                    elseif strcmpi(Si,'y') 
-                        sn(j,k) = real(trace(qs.sz*Y*rt));
-                    elseif strcmpi(Si,'z') 
-                        sn(j,k) = real(trace(qs.sz*rt));
-                    else
-                        warning('There is no such axis.');
+        function sn = measureSiN12(qs,Si,N,ind)
+            if ind == 1
+                sn = zeros(size(qs.crho.runs(1).rho,3),N);
+                for k=1:N
+                rtemp = qs.crho.runs(k).rho;
+                    for j= 1:size(rtemp,3)
+                        rt(:,:) = rtemp(:,:,j);
+                        if strcmpi(Si,'x') 
+                            sn(j,k) = real(trace(rt*qs.sx1));
+                        elseif strcmpi(Si,'y') 
+                            sn(j,k) = real(trace(rt*qs.sy1));
+                        elseif strcmpi(Si,'z') 
+                            sn(j,k) = real(trace(rt*qs.sz1));
+                        else
+                            warning('There is no such axis.');
+                        end
                     end
                 end
+            elseif ind ==2
+                sn = zeros(size(qs.crho.runs(1).rho,3),N);
+                for k=1:N
+                rtemp = qs.crho.runs(k).rho;
+                    for j= 1:size(rtemp,3)
+                        rt(:,:) = rtemp(:,:,j);
+                        if strcmpi(Si,'x') 
+                            sn(j,k) = real(trace(rt*qs.sx2));
+                        elseif strcmpi(Si,'y') 
+                            sn(j,k) = real(trace(rt*qs.sy2));
+                        elseif strcmpi(Si,'z') 
+                            sn(j,k) = real(trace(rt*qs.sz2));
+                        else
+                            warning('There is no such axis.');
+                        end
+                    end
+                end
+            else
+                warning('Wrong index of qubit');
             end
         end
 
@@ -286,10 +317,33 @@ classdef quState < handle
                 b0 = [1,0.01,pi/2,0]; %Initial guess which works for most cases
             else
                 b0 = beta0;
-            end
+            end 
             beta = nlinfit(t,sn,expsine,beta0);
         end
 
+        function H = invpownoise(qs,H0,H1,t,N,m,sg)
+            if length(t) == 1
+                tl = t-1;
+            else
+                tl = length(t)-1;
+            end
+            
+            for z=1:N
+                invpow = zeros(1,tl);
+                invpow(1) = rand(1);
+                for i=1:(tl-1)
+                    invpow(i+1) = mod((invpow(i)+invpow(i)^2),1);
+                end
+                rot_rate = sg * invpow;
+                mu = m * ones(1,tl);
+                for k = 1:tl
+                    H(:,:,k,z) = mu(k)*H0 + rot_rate(k)*H1;
+                end
+            end
+        end
+        
+      
+        
         function h = plot(qs)
             clf;
             if (isPure(qs)<qs.epsilon)
